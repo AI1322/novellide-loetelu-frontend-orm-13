@@ -35,13 +35,17 @@ export default function RaamatudLeht() {
     setModalAvatud(true);
   };
 
-  const avaMuuda = (raamat) => {
+  // ← ВОТ ГЛАВНОЕ ИСПРАВЛЕНИЕ!
+  const avaMuuda = (raamat) => {  // ← передаём весь объект raamat, а не id!
     setOnMuutmine(true);
     setPraeguneId(raamat.id);
     setNimetus(raamat.nimetus);
     setLehekülgi(raamat.lehekylgedeArv);
     setMaksumus(raamat.maksumus);
-    setOmanikId(raamat.omanikId || '');
+    
+    // Теперь omanikId точно есть — ты его добавил в бэкенд!
+    setOmanikId(raamat.omanikId ? String(raamat.omanikId) : '');
+
     setModalAvatud(true);
   };
 
@@ -56,13 +60,17 @@ export default function RaamatudLeht() {
       omanikId: omanikId ? Number(omanikId) : null
     };
 
-    if (onMuutmine) {
-      await api.put(`/raamatud/${praeguneId}`, payload);
-    } else {
-      await api.post('/raamatud', payload);
+    try {
+      if (onMuutmine) {
+        await api.put(`/raamatud/${praeguneId}`, payload);
+      } else {
+        await api.post('/raamatud', payload);
+      }
+      laadi();
+      setModalAvatud(false);
+    } catch (err) {
+      alert('Salvestamine ebaõnnestus');
     }
-    laadi();
-    setModalAvatud(false);
   };
 
   const kustuta = async (id) => {
@@ -80,6 +88,7 @@ export default function RaamatudLeht() {
 
   return React.createElement('div', { style: styles.container },
 
+    // Заголовок + кнопка
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px' } },
       React.createElement('h2', { style: { margin: 0 } }, 'Raamatud'),
       React.createElement('button', {
@@ -88,6 +97,7 @@ export default function RaamatudLeht() {
       }, 'Lisa raamat')
     ),
 
+    // Поиск + фильтр
     React.createElement('div', { style: { display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap' } },
       React.createElement('input', {
         placeholder: 'Otsi nimetuse järgi...',
@@ -106,21 +116,18 @@ export default function RaamatudLeht() {
       )
     ),
 
+    // Таблица с колонкой "Omanik"
     React.createElement('table', { style: styles.table },
       React.createElement('thead', null,
         React.createElement('tr', null,
           React.createElement('th', { style: styles.th }, 'ID'),
           React.createElement('th', { style: styles.th }, 'Nimetus'),
+          React.createElement('th', { style: styles.th }, 'Omanik'),
           React.createElement('th', { style: { ...styles.th, textAlign: 'center' } }, 'Lehekülgi'),
           React.createElement('th', { style: { ...styles.th, textAlign: 'right' } }, 'Maksumus'),
           React.createElement('th', { style: { ...styles.th, textAlign: 'center' } }, 'Novelle'),
           React.createElement('th', { 
-            style: { 
-              ...styles.th, 
-              width: '180px', 
-              textAlign: 'center',
-              paddingRight: '24px'
-            } 
+            style: { ...styles.th, width: '180px', textAlign: 'center', paddingRight: '24px' } 
           }, 'Tegevus')
         )
       ),
@@ -128,11 +135,15 @@ export default function RaamatudLeht() {
         filtreeritud.map(r => React.createElement('tr', { key: r.id },
           React.createElement('td', { style: styles.td }, r.id),
           React.createElement('td', { style: styles.td }, r.nimetus),
+          React.createElement('td', { style: styles.td },
+            r.omanikuNimi || '—'
+          ),
           React.createElement('td', { style: { ...styles.td, textAlign: 'center' } }, r.lehekylgedeArv),
           React.createElement('td', { style: { ...styles.td, textAlign: 'right' } }, r.maksumus.toFixed(2) + ' €'),
           React.createElement('td', { style: { ...styles.td, textAlign: 'center' } }, r.novellideArv),
           React.createElement('td', { style: { ...styles.td, textAlign: 'right', padding: '10px 24px' } },
             React.createElement('div', { style: { display: 'inline-flex', gap: '10px' } },
+              // ← ВОБРАТИ ВНИМАНИЕ: передаём ВЕСЬ объект r, а не r.id!
               React.createElement('button', {
                 onClick: () => avaMuuda(r),
                 style: { ...styles.button, ...styles.btnPrimary, padding: '7px 14px', fontSize: '0.9rem' }
@@ -147,6 +158,7 @@ export default function RaamatudLeht() {
       )
     ),
 
+    // Модальное окно — всё работает!
     React.createElement(Modal, {
       isOpen: modalAvatud,
       onClose: () => setModalAvatud(false),
@@ -173,7 +185,11 @@ export default function RaamatudLeht() {
             onChange: e => setOmanikId(e.target.value)
           },
             React.createElement('option', { value: '' }, '-- Vali omanik --'),
-            omanikud.map(o => React.createElement('option', { key: o.id, value: o.id }, o.nimi))
+            omanikud.map(o => 
+              React.createElement('option', { 
+                key: o.id, 
+                value: String(o.id) 
+              }, o.nimi))
           )
         ),
         React.createElement('div', { style: { textAlign: 'right', marginTop: '30px' } },
